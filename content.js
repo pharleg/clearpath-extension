@@ -190,30 +190,43 @@ function looksLikeCard(el) {
   return true;
 }
 
+function applyCardFilter(el) {
+  SKIP_CONTAINERS.add(el);
+  if (settings.mode === "hide") {
+    el.style.setProperty("display", "none", "important");
+  } else {
+    el.classList.add("clearpath-filtered", `clearpath-${settings.mode}`);
+  }
+}
+
 function scanCards(regex) {
-  // Query all candidate elements
-  const candidates = document.querySelectorAll("div, section, article, aside, li");
-  candidates.forEach(el => {
-    if (SKIP_CONTAINERS.has(el)) return;
-    if (!looksLikeCard(el)) return;
+  const candidates = Array.from(
+    document.querySelectorAll("div, section, article, aside, li")
+  ).filter(el => {
+    if (SKIP_CONTAINERS.has(el)) return false;
+    if (!looksLikeCard(el)) return false;
+    if (el.closest("nav, header, footer, [role='navigation']")) return false;
+    return true;
+  });
 
-    // Skip nav/header/footer parents
-    if (el.closest("nav, header, footer, [role='navigation']")) return;
-
-    SKIP_CONTAINERS.add(el);
-
-    regex.lastIndex = 0;
-    const text = el.innerText || el.textContent || "";
-    if (!text.trim()) return;
-
-    if (regex.test(text)) {
-      if (settings.mode === "hide") {
-        el.style.setProperty("display", "none", "important");
-      } else {
-        el.classList.add("clearpath-filtered", `clearpath-${settings.mode}`);
+  function processBatch(deadline) {
+    while (candidates.length > 0 && deadline.timeRemaining() > 5) {
+      const el = candidates.shift();
+      const text = el.textContent || "";
+      if (!text.trim()) continue;
+      regex.lastIndex = 0;
+      if (regex.test(text)) {
+        applyCardFilter(el);
       }
     }
-  });
+    if (candidates.length > 0) {
+      requestIdleCallback(processBatch, { timeout: 2000 });
+    }
+  }
+
+  if (candidates.length > 0) {
+    requestIdleCallback(processBatch, { timeout: 2000 });
+  }
 }
 
 
@@ -259,6 +272,7 @@ function runFilterDelayed() {
   const words = getActiveWords();
   if (!words.length) return;
   const regex = buildRegex(words);
+  processNode(document.body, regex);
   scanCards(regex);
 }
 
