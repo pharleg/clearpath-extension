@@ -345,11 +345,17 @@ function startObserver() {
 }
 
 // Click-to-reveal: delegate from body so dynamically added blur elements are covered
+// Capture phase (true) so we intercept before the link inside the card fires.
+// Only intercept when the element is still blurred — once revealed, let clicks
+// pass through naturally so the user can navigate to the article.
 document.body.addEventListener("click", (e) => {
   if (!settings.revealOnClick) return;
   const el = e.target.closest(".clearpath-blur");
   if (!el) return;
-  el.classList.toggle("clearpath-revealed");
+  if (el.classList.contains("clearpath-revealed")) return;
+  e.preventDefault();
+  e.stopPropagation();
+  el.classList.add("clearpath-revealed");
 }, true);
 
 // Load settings from storage then run
