@@ -20,15 +20,6 @@ Content filter built for the recovery community. Removes alcohol, drug, and subs
 
 The extension loads immediately on all pages.
 
-## Icons
-
-You'll need to add PNG icons at:
-- `icons/icon16.png`
-- `icons/icon48.png`
-- `icons/icon128.png`
-
-A simple solid-color icon works fine for dev. For production, design something meaningful for the community.
-
 ## File structure
 
 ```
