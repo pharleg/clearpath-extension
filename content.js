@@ -346,12 +346,18 @@ function startObserver() {
 
 // Click-to-reveal: delegate from body so dynamically added blur elements are covered
 // Capture phase (true) so we intercept before the link inside the card fires.
-// Only intercept when the element is still blurred — once revealed, let clicks
-// pass through naturally so the user can navigate to the article.
+// Walk UP to the outermost .clearpath-blur ancestor — .closest() finds the nearest
+// (often a word-level span), but CSS filter on a parent blurs all children regardless,
+// so we need to reveal the topmost blur container to actually unblur the card.
 document.body.addEventListener("click", (e) => {
   if (!settings.revealOnClick) return;
-  const el = e.target.closest(".clearpath-blur");
-  if (!el) return;
+  const inner = e.target.closest(".clearpath-blur");
+  if (!inner) return;
+  // Find outermost blur ancestor
+  let el = inner;
+  while (el.parentElement?.closest(".clearpath-blur")) {
+    el = el.parentElement.closest(".clearpath-blur");
+  }
   if (el.classList.contains("clearpath-revealed")) return;
   e.preventDefault();
   e.stopPropagation();
