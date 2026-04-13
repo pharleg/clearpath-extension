@@ -296,6 +296,8 @@ function runFilterDelayed() {
 
 // Watch for dynamically added content
 let observer;
+let observerDebounceTimer = null;
+
 function startObserver() {
   if (observer) observer.disconnect();
   const words = getActiveWords();
@@ -303,16 +305,37 @@ function startObserver() {
   const regex = buildRegex(words);
 
   observer = new MutationObserver((mutations) => {
+    // Collect only nodes added by the site, not by our own filtering
+    const siteNodes = [];
     mutations.forEach(mutation => {
       mutation.addedNodes.forEach(node => {
         if (node.nodeType === Node.ELEMENT_NODE) {
-          processNode(node, regex);
-          scanCards(regex);
+          // Skip spans/elements we injected
+          if (node.classList?.contains("clearpath-filtered")) return;
+          if (node.closest?.(".clearpath-filtered")) return;
+          siteNodes.push(node);
         } else if (node.nodeType === Node.TEXT_NODE) {
-          processTextNode(node, regex);
+          // Skip text nodes inside our spans
+          if (node.parentElement?.closest(".clearpath-filtered")) return;
+          siteNodes.push(node);
         }
       });
     });
+
+    if (!siteNodes.length) return;
+
+    // Debounce: batch rapid mutations into a single processing pass
+    clearTimeout(observerDebounceTimer);
+    observerDebounceTimer = setTimeout(() => {
+      siteNodes.forEach(node => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          processNode(node, regex);
+        } else {
+          processTextNode(node, regex);
+        }
+      });
+      scanCards(regex);
+    }, 300);
   });
 
   observer.observe(document.body, {
