@@ -309,10 +309,12 @@ function startObserver() {
 // Load settings from storage then run
 chrome.storage.sync.get(["clearpathSettings"], (result) => {
   if (result.clearpathSettings) {
-    settings = { ...settings, ...result.clearpathSettings };
-    // Merge word lists carefully so new defaults don't get wiped
-    if (result.clearpathSettings.wordLists) {
-      settings.wordLists = result.clearpathSettings.wordLists;
+    // Destructure wordLists out before spreading so a stored null value
+    // cannot overwrite DEFAULT_WORD_LISTS (Object.entries(null) throws)
+    const { wordLists, ...rest } = result.clearpathSettings;
+    settings = { ...settings, ...rest };
+    if (wordLists) {
+      settings.wordLists = wordLists;
     }
   }
   if (settings.enabled) {

@@ -8,8 +8,8 @@ chrome.runtime.onInstalled.addListener(() => {
       chrome.storage.sync.set({
         clearpathSettings: {
           enabled: true,
-          mode: "blur",
-          wordLists: null // null means content.js uses its own defaults
+          mode: "blur"
+          // wordLists intentionally omitted — content.js uses DEFAULT_WORD_LISTS
         }
       });
     }
