@@ -267,12 +267,15 @@ function runFilter() {
 }
 
 // Retry pass for late-rendering content (React, lazy loads, etc.)
+// processNode is intentionally omitted here — it already ran in runFilter() and
+// the TreeWalker has no guard against re-processing existing clearpath spans,
+// so calling it again would create double-nested blur spans on matched words.
+// scanCards() is safe to retry because SKIP_CONTAINERS prevents re-processing.
 function runFilterDelayed() {
   if (!settings.enabled) return;
   const words = getActiveWords();
   if (!words.length) return;
   const regex = buildRegex(words);
-  processNode(document.body, regex);
   scanCards(regex);
 }
 
