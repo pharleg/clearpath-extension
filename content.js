@@ -57,6 +57,7 @@ const REPLACEMENT_TEXT = "[ content filtered ]";
 let settings = {
   enabled: true,
   mode: "blur", // "blur", "hide", "replace"
+  revealOnClick: true,
   wordLists: DEFAULT_WORD_LISTS
 };
 
@@ -252,10 +253,9 @@ function injectStyles() {
   style.textContent = `
     .clearpath-blur {
       filter: blur(5px);
-      cursor: pointer;
       transition: filter 0.2s;
     }
-    .clearpath-blur:hover {
+    .clearpath-blur.clearpath-revealed {
       filter: blur(0);
     }
     .clearpath-hide {
@@ -343,6 +343,14 @@ function startObserver() {
     subtree: true
   });
 }
+
+// Click-to-reveal: delegate from body so dynamically added blur elements are covered
+document.body.addEventListener("click", (e) => {
+  if (!settings.revealOnClick) return;
+  const el = e.target.closest(".clearpath-blur");
+  if (!el) return;
+  el.classList.toggle("clearpath-revealed");
+}, true);
 
 // Load settings from storage then run
 chrome.storage.sync.get(["clearpathSettings"], (result) => {
