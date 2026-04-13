@@ -120,6 +120,9 @@ function processTextNode(node, regex) {
 }
 
 // Walk the DOM and process text nodes
+// TreeWalker collection is synchronous (read-only, fast).
+// DOM mutations (replaceChild) are deferred to idle batches to avoid
+// blocking the main thread on content-heavy pages.
 function processNode(root, regex) {
   const walker = document.createTreeWalker(
     root,
@@ -145,7 +148,19 @@ function processNode(root, regex) {
   const nodes = [];
   let node;
   while ((node = walker.nextNode())) nodes.push(node);
-  nodes.forEach(n => processTextNode(n, regex));
+
+  function processBatch(deadline) {
+    while (nodes.length > 0 && deadline.timeRemaining() > 5) {
+      processTextNode(nodes.shift(), regex);
+    }
+    if (nodes.length > 0) {
+      requestIdleCallback(processBatch, { timeout: 2000 });
+    }
+  }
+
+  if (nodes.length > 0) {
+    requestIdleCallback(processBatch, { timeout: 2000 });
+  }
 }
 
 // Universal card scanner — finds content units top-down and hides any that match
