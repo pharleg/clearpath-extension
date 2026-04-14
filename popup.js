@@ -46,7 +46,6 @@ const DEFAULT_WORD_LISTS = {
 let currentSettings = {
   enabled: true,
   mode: "blur",
-  revealOnClick: true,
   wordLists: JSON.parse(JSON.stringify(DEFAULT_WORD_LISTS))
 };
 
@@ -84,28 +83,12 @@ function renderUI() {
   });
 
   // Mode buttons
-  const revealRow = document.getElementById("revealRow");
-  const revealToggle = document.getElementById("revealToggle");
-
-  function updateRevealRowVisibility(mode) {
-    revealRow.style.display = mode === "blur" ? "flex" : "none";
-  }
-
-  revealToggle.checked = currentSettings.revealOnClick;
-  updateRevealRowVisibility(currentSettings.mode);
-
-  revealToggle.addEventListener("change", () => {
-    currentSettings.revealOnClick = revealToggle.checked;
-    markDirty();
-  });
-
   document.querySelectorAll(".mode-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.mode === currentSettings.mode);
     btn.addEventListener("click", () => {
       currentSettings.mode = btn.dataset.mode;
       document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      updateRevealRowVisibility(btn.dataset.mode);
       markDirty();
     });
   });

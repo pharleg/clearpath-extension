@@ -57,7 +57,6 @@ const REPLACEMENT_TEXT = "[ content filtered ]";
 let settings = {
   enabled: true,
   mode: "blur", // "blur", "hide", "replace"
-  revealOnClick: true,
   wordLists: DEFAULT_WORD_LISTS
 };
 
@@ -344,16 +343,12 @@ function startObserver() {
   });
 }
 
-// Click-to-reveal: delegate from body so dynamically added blur elements are covered
-// Capture phase (true) so we intercept before the link inside the card fires.
-// Walk UP to the outermost .clearpath-blur ancestor — .closest() finds the nearest
-// (often a word-level span), but CSS filter on a parent blurs all children regardless,
-// so we need to reveal the topmost blur container to actually unblur the card.
+// Click-to-reveal: always on. Capture phase so we intercept before the link fires.
+// Walk to the outermost .clearpath-blur ancestor — CSS filter on a parent blurs all
+// children, so revealing an inner span has no visual effect; we need the top container.
 document.body.addEventListener("click", (e) => {
-  if (!settings.revealOnClick) return;
   const inner = e.target.closest(".clearpath-blur");
   if (!inner) return;
-  // Find outermost blur ancestor
   let el = inner;
   while (el.parentElement?.closest(".clearpath-blur")) {
     el = el.parentElement.closest(".clearpath-blur");
