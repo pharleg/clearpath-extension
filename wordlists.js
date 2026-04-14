@@ -2,6 +2,31 @@
 // Single source of truth loaded by both content.js (via manifest) and popup.html.
 // DO NOT duplicate this in content.js or popup.js.
 
+// Words that confirm drug/alcohol context when found near an ambiguous match.
+// Checked against the nearest block-level ancestor's full textContent.
+const CONTEXT_SIGNALS = {
+  drugs: [
+    "smoke", "smoked", "smoking", "high", "dealer", "stash", "pipe", "bong",
+    "joint", "blunt", "snort", "inject", "needle", "rehab", "addiction",
+    "drug", "drugs", "substance", "cannabis", "marijuana", "weed", "thc",
+    "overdose", "detox", "withdrawal", "narcotic", "illegal", "street drug",
+    "recreational", "psychedelic", "hallucin"
+  ],
+  alcohol: [
+    "drink", "drinking", "drunk", "bar", "pub", "glass", "bottle", "pour",
+    "sip", "hangover", "cheers", "brewery", "wine", "beer", "cocktail",
+    "liquor", "booze", "intoxicat", "alcohol", "distill"
+  ]
+};
+
+// Ambiguous words that are only filtered when CONTEXT_SIGNALS for their
+// category appear in the surrounding text. Confident words (not listed here)
+// are always filtered regardless of context.
+const AMBIGUOUS_WORDS = {
+  drugs: ["pot", "acid", "wasted", "tripping", "mushrooms", "coke", "stoned"],
+  alcohol: ["spirits", "hammered", "wasted"]
+};
+
 const DEFAULT_WORD_LISTS = {
   alcohol: {
     label: "Alcohol",

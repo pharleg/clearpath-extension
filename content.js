@@ -27,15 +27,47 @@ function buildRegex(words) {
   return new RegExp(`\\b(${escaped.join("|")})\\b`, "gi");
 }
 
+// Build a context checker based on the active word lists.
+// Returns needsContext(matchedWord, surroundingText) → boolean.
+// Confident words always return true. Ambiguous words return true only
+// when a signal word for their category appears in the surrounding text.
+function buildContextChecker() {
+  const ambiguousMap = new Map(); // word → signals[]
+
+  for (const [categoryKey, category] of Object.entries(settings.wordLists)) {
+    if (!category.enabled) continue;
+    const ambiguous = (AMBIGUOUS_WORDS[categoryKey] || []).map(w => w.toLowerCase());
+    const signals = CONTEXT_SIGNALS[categoryKey] || [];
+    for (const word of ambiguous) {
+      ambiguousMap.set(word, signals);
+    }
+  }
+
+  return function needsContext(matchedWord, surroundingText) {
+    const lw = matchedWord.toLowerCase();
+    const signals = ambiguousMap.get(lw);
+    if (!signals) return true; // confident word — always filter
+    const lowerCtx = surroundingText.toLowerCase();
+    return signals.some(s => lowerCtx.includes(s));
+  };
+}
+
 // Process a single text node
-function processTextNode(node, regex) {
+function processTextNode(node, regex, needsContext) {
   if (!node.nodeValue || !node.nodeValue.trim()) return;
   if (!regex.test(node.nodeValue)) return;
 
   regex.lastIndex = 0;
 
+  // Context text: use the nearest block ancestor so ambiguous words can
+  // see the full sentence/paragraph rather than just the text node value.
+  const contextEl = node.parentElement?.closest("p,li,td,h1,h2,h3,h4,h5,h6,blockquote,article,section,div");
+  const contextText = contextEl?.textContent || node.nodeValue;
+
   if (settings.mode === "replace") {
-    node.nodeValue = node.nodeValue.replace(regex, REPLACEMENT_TEXT);
+    node.nodeValue = node.nodeValue.replace(regex, (m) =>
+      needsContext(m, contextText) ? REPLACEMENT_TEXT : m
+    );
     return;
   }
 
@@ -50,6 +82,12 @@ function processTextNode(node, regex) {
   let matched = false;
 
   while ((match = regex.exec(node.nodeValue)) !== null) {
+    if (!needsContext(match[0], contextText)) {
+      // Ambiguous word with no context signal — emit as plain text and skip
+      fragment.appendChild(document.createTextNode(node.nodeValue.slice(lastIndex, match.index + match[0].length)));
+      lastIndex = match.index + match[0].length;
+      continue;
+    }
     matched = true;
     if (match.index > lastIndex) {
       fragment.appendChild(document.createTextNode(node.nodeValue.slice(lastIndex, match.index)));
@@ -72,7 +110,7 @@ function processTextNode(node, regex) {
 // TreeWalker collection is synchronous (read-only, fast).
 // DOM mutations (replaceChild) are deferred to idle batches to avoid
 // blocking the main thread on content-heavy pages.
-function processNode(root, regex) {
+function processNode(root, regex, needsContext) {
   const walker = document.createTreeWalker(
     root,
     NodeFilter.SHOW_TEXT,
@@ -100,7 +138,7 @@ function processNode(root, regex) {
 
   function processBatch(deadline) {
     while (nodes.length > 0 && deadline.timeRemaining() > 5) {
-      processTextNode(nodes.shift(), regex);
+      processTextNode(nodes.shift(), regex, needsContext);
     }
     if (nodes.length > 0) {
       requestIdleCallback(processBatch, { timeout: 2000 });
@@ -163,7 +201,7 @@ function applyCardFilter(el) {
   }
 }
 
-function scanCards(regex) {
+function scanCards(regex, needsContext) {
   const candidates = Array.from(
     document.querySelectorAll("div, section, article, aside, li")
   ).filter(el => {
@@ -179,9 +217,12 @@ function scanCards(regex) {
       const text = el.textContent || "";
       if (!text.trim()) continue;
       regex.lastIndex = 0;
-      if (regex.test(text)) {
-        applyCardFilter(el);
+      let match;
+      let shouldFilter = false;
+      while ((match = regex.exec(text)) !== null) {
+        if (needsContext(match[0], text)) { shouldFilter = true; break; }
       }
+      if (shouldFilter) applyCardFilter(el);
     }
     if (candidates.length > 0) {
       requestIdleCallback(processBatch, { timeout: 2000 });
@@ -224,9 +265,10 @@ function runFilter() {
   const words = getActiveWords();
   if (!words.length) return;
   const regex = buildRegex(words);
+  const needsContext = buildContextChecker();
   injectStyles();
-  processNode(document.body, regex);
-  scanCards(regex);
+  processNode(document.body, regex, needsContext);
+  scanCards(regex, needsContext);
 }
 
 // Retry pass for late-rendering content (React, lazy loads, etc.)
@@ -239,7 +281,8 @@ function runFilterDelayed() {
   const words = getActiveWords();
   if (!words.length) return;
   const regex = buildRegex(words);
-  scanCards(regex);
+  const needsContext = buildContextChecker();
+  scanCards(regex, needsContext);
 }
 
 // Watch for dynamically added content
@@ -251,6 +294,7 @@ function startObserver() {
   const words = getActiveWords();
   if (!words.length) return;
   const regex = buildRegex(words);
+  const needsContext = buildContextChecker();
 
   observer = new MutationObserver((mutations) => {
     // Collect only nodes added by the site, not by our own filtering
@@ -277,12 +321,12 @@ function startObserver() {
     observerDebounceTimer = setTimeout(() => {
       siteNodes.forEach(node => {
         if (node.nodeType === Node.ELEMENT_NODE) {
-          processNode(node, regex);
+          processNode(node, regex, needsContext);
         } else {
-          processTextNode(node, regex);
+          processTextNode(node, regex, needsContext);
         }
       });
-      scanCards(regex);
+      scanCards(regex, needsContext);
     }, 300);
   });
 
