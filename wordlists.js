@@ -29,7 +29,7 @@ const DEFAULT_WORD_LISTS = {
     label: "Drugs & Substances",
     enabled: true,
     words: [
-      "cocaine", "coke", "crack",
+      "cocaine", "coke",
       "heroin", "opioid", "opiate", "fentanyl", "oxycodone", "hydrocodone", "percocet", "vicodin",
       "meth", "methamphetamine", "crystal meth",
       "marijuana", "cannabis", "weed", "pot", "edibles", "thc", "dispensary", "high on",
