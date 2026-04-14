@@ -139,21 +139,15 @@ function renderCategories() {
 
 function saveAndApply() {
   chrome.storage.sync.set({ clearpathSettings: currentSettings }, () => {
-    // Notify active tab
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.id) {
-        chrome.tabs.sendMessage(tabs[0].id, {
-          type: "SETTINGS_UPDATED",
-          settings: currentSettings
-        });
-      }
-    });
     dirty = false;
     document.getElementById("applyBtn").disabled = true;
-
-    // Brief visual confirmation
-    const btn = document.getElementById("applyBtn");
-    btn.textContent = "Applied ✓";
-    setTimeout(() => { btn.textContent = "Apply"; }, 1200);
+    document.getElementById("reloadBanner").classList.add("visible");
   });
 }
+
+document.getElementById("reloadBtn").addEventListener("click", () => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]?.id) chrome.tabs.reload(tabs[0].id);
+  });
+  window.close();
+});

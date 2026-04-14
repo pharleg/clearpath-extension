@@ -233,6 +233,42 @@
       margin-top: 1px;
     }
 
+    /* Reload banner */
+    .reload-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 20px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--accent);
+    }
+
+    .reload-banner.visible {
+      display: flex;
+    }
+
+    .reload-banner-text {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .reload-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .reload-btn:hover {
+      opacity: 0.85;
+    }
+
     /* Footer */
     .footer {
       padding: 10px 20px 14px;
@@ -280,6 +316,11 @@
         <div class="logo-tagline">Content Filter</div>
       </div>
     </div>
+  </div>
+
+  <div class="reload-banner" id="reloadBanner">
+    <span class="reload-banner-text">Reload tab to apply changes</span>
+    <button class="reload-btn" id="reloadBtn">Reload</button>
   </div>
 
   <div class="master-toggle">

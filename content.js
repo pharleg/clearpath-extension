@@ -379,11 +379,3 @@ chrome.storage.sync.get(["clearpathSettings"], (result) => {
   }
 });
 
-// Listen for settings changes from popup
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === "SETTINGS_UPDATED") {
-    settings = msg.settings;
-    // Re-run — simplest approach for now is reload
-    window.location.reload();
-  }
-});

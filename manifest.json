@@ -5,7 +5,8 @@
   "description": "Filters alcohol and substance references from web pages. Built for the recovery community.",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "tabs"
   ],
   "host_permissions": [
     "<all_urls>"
