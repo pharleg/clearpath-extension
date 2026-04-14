@@ -233,6 +233,100 @@
       margin-top: 1px;
     }
 
+    /* Custom words */
+    .custom-section {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .custom-input-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .custom-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .custom-input:focus {
+      border-color: var(--accent);
+    }
+
+    .custom-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .custom-add-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--accent);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .custom-add-btn:hover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    .custom-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .custom-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px 3px 10px;
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      color: var(--text);
+    }
+
+    .custom-chip-remove {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1;
+      padding: 0;
+      margin-left: 2px;
+      transition: color 0.15s;
+    }
+
+    .custom-chip-remove:hover {
+      color: var(--red);
+    }
+
+    .custom-empty {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+      margin-top: 8px;
+    }
+
     /* Reload banner */
     .reload-banner {
       display: none;
@@ -356,6 +450,15 @@
   <div class="section">
     <div class="section-label">Filter categories</div>
     <div id="categoryList"></div>
+  </div>
+
+  <div class="custom-section">
+    <div class="section-label">Custom words</div>
+    <div class="custom-input-row">
+      <input class="custom-input" id="customInput" type="text" placeholder="Add a word or phrase…" maxlength="60">
+      <button class="custom-add-btn" id="customAddBtn">Add</button>
+    </div>
+    <div class="custom-chips" id="customChips"></div>
   </div>
 
   <div class="footer">

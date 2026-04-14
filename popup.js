@@ -54,6 +54,9 @@ function renderUI() {
   // Categories
   renderCategories();
 
+  // Custom words
+  initCustomWords();
+
   // Apply button
   const applyBtn = document.getElementById("applyBtn");
   applyBtn.disabled = true;
@@ -72,6 +75,7 @@ function renderCategories() {
   container.innerHTML = "";
 
   for (const [key, category] of Object.entries(currentSettings.wordLists)) {
+    if (key === "custom") continue; // managed separately in the custom words section
     const row = document.createElement("div");
     row.className = "category-row";
     row.innerHTML = `
@@ -93,6 +97,59 @@ function renderCategories() {
 
     container.appendChild(row);
   }
+}
+
+function renderCustomChips() {
+  const container = document.getElementById("customChips");
+  container.innerHTML = "";
+  const words = currentSettings.wordLists.custom?.words || [];
+
+  if (!words.length) {
+    container.innerHTML = `<div class="custom-empty">No custom words yet.</div>`;
+    return;
+  }
+
+  words.forEach((word, i) => {
+    const chip = document.createElement("div");
+    chip.className = "custom-chip";
+    chip.innerHTML = `
+      <span>${word}</span>
+      <button class="custom-chip-remove" data-index="${i}" title="Remove">✕</button>
+    `;
+    chip.querySelector("button").addEventListener("click", () => {
+      currentSettings.wordLists.custom.words.splice(i, 1);
+      renderCustomChips();
+      markDirty();
+    });
+    container.appendChild(chip);
+  });
+}
+
+function initCustomWords() {
+  renderCustomChips();
+
+  const input = document.getElementById("customInput");
+  const addBtn = document.getElementById("customAddBtn");
+
+  function addWord() {
+    const word = input.value.trim().toLowerCase();
+    if (!word) return;
+    if (!currentSettings.wordLists.custom) {
+      currentSettings.wordLists.custom = { label: "Custom", enabled: true, words: [] };
+    }
+    if (!currentSettings.wordLists.custom.words.includes(word)) {
+      currentSettings.wordLists.custom.words.push(word);
+      renderCustomChips();
+      markDirty();
+    }
+    input.value = "";
+    input.focus();
+  }
+
+  addBtn.addEventListener("click", addWord);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addWord();
+  });
 }
 
 function saveAndApply() {
