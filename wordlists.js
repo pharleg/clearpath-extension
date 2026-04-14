@@ -3,19 +3,19 @@
 // DO NOT duplicate this in content.js or popup.js.
 
 // Words that confirm drug/alcohol context when found near an ambiguous match.
-// Checked against the nearest block-level ancestor's full textContent.
+// Matched with \b word boundaries — must be whole words, not substrings.
+// Keep these specific: "high" is intentionally excluded (too common in sports/news).
 const CONTEXT_SIGNALS = {
   drugs: [
-    "smoke", "smoked", "smoking", "high", "dealer", "stash", "pipe", "bong",
-    "joint", "blunt", "snort", "inject", "needle", "rehab", "addiction",
-    "drug", "drugs", "substance", "cannabis", "marijuana", "weed", "thc",
-    "overdose", "detox", "withdrawal", "narcotic", "illegal", "street drug",
-    "recreational", "psychedelic", "hallucin"
+    "bong", "cannabis", "marijuana", "weed", "thc", "cocaine", "heroin",
+    "overdose", "narcotic", "psychedelic", "psilocybin", "dispensary",
+    "drug", "drugs", "addiction", "addict", "rehab", "detox", "dope",
+    "stash", "snort", "dealer", "blaze", "420", "substance abuse"
   ],
   alcohol: [
-    "drink", "drinking", "drunk", "bar", "pub", "glass", "bottle", "pour",
-    "sip", "hangover", "cheers", "brewery", "wine", "beer", "cocktail",
-    "liquor", "booze", "intoxicat", "alcohol", "distill"
+    "drunk", "hangover", "bartender", "brewery", "distillery", "taproom",
+    "wine", "beer", "cocktail", "liquor", "booze", "alcohol", "whiskey",
+    "vodka", "tequila", "pub", "nightcap", "intoxicated"
   ]
 };
 

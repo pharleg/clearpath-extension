@@ -30,25 +30,31 @@ function buildRegex(words) {
 // Build a context checker based on the active word lists.
 // Returns needsContext(matchedWord, surroundingText) → boolean.
 // Confident words always return true. Ambiguous words return true only
-// when a signal word for their category appears in the surrounding text.
+// when a signal word appears as a whole word (\b) in the surrounding text.
+// Signal regexes are precompiled once per filter run, not per match.
 function buildContextChecker() {
-  const ambiguousMap = new Map(); // word → signals[]
+  const ambiguousMap = new Map(); // lowerCaseWord → RegExp (combined signals)
 
   for (const [categoryKey, category] of Object.entries(settings.wordLists)) {
     if (!category.enabled) continue;
     const ambiguous = (AMBIGUOUS_WORDS[categoryKey] || []).map(w => w.toLowerCase());
     const signals = CONTEXT_SIGNALS[categoryKey] || [];
+    if (!signals.length || !ambiguous.length) continue;
+
+    // One combined regex for all signals in this category — faster than iterating
+    const escaped = signals.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const signalRegex = new RegExp(`\\b(${escaped.join("|")})\\b`, "i");
+
     for (const word of ambiguous) {
-      ambiguousMap.set(word, signals);
+      ambiguousMap.set(word, signalRegex);
     }
   }
 
   return function needsContext(matchedWord, surroundingText) {
     const lw = matchedWord.toLowerCase();
-    const signals = ambiguousMap.get(lw);
-    if (!signals) return true; // confident word — always filter
-    const lowerCtx = surroundingText.toLowerCase();
-    return signals.some(s => lowerCtx.includes(s));
+    const signalRegex = ambiguousMap.get(lw);
+    if (!signalRegex) return true; // confident word — always filter
+    return signalRegex.test(surroundingText);
   };
 }
 
@@ -61,8 +67,10 @@ function processTextNode(node, regex, needsContext) {
 
   // Context text: use the nearest block ancestor so ambiguous words can
   // see the full sentence/paragraph rather than just the text node value.
-  const contextEl = node.parentElement?.closest("p,li,td,h1,h2,h3,h4,h5,h6,blockquote,article,section,div");
-  const contextText = contextEl?.textContent || node.nodeValue;
+  // Use the nearest sentence-level block for context — deliberately excludes div/section
+  // to avoid a drug article elsewhere on the page poisoning the context for unrelated content.
+  const contextEl = node.parentElement?.closest("p,li,td,h1,h2,h3,h4,h5,h6,blockquote,article");
+  const contextText = contextEl?.textContent || node.parentElement?.textContent || node.nodeValue;
 
   if (settings.mode === "replace") {
     node.nodeValue = node.nodeValue.replace(regex, (m) =>
