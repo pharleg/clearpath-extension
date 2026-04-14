@@ -27,55 +27,15 @@ function buildRegex(words) {
   return new RegExp(`\\b(${escaped.join("|")})\\b`, "gi");
 }
 
-// Build a context checker based on the active word lists.
-// Returns needsContext(matchedWord, surroundingText) → boolean.
-// Confident words always return true. Ambiguous words return true only
-// when a signal word appears as a whole word (\b) in the surrounding text.
-// Signal regexes are precompiled once per filter run, not per match.
-function buildContextChecker() {
-  const ambiguousMap = new Map(); // lowerCaseWord → RegExp (combined signals)
-
-  for (const [categoryKey, category] of Object.entries(settings.wordLists)) {
-    if (!category.enabled) continue;
-    const ambiguous = (AMBIGUOUS_WORDS[categoryKey] || []).map(w => w.toLowerCase());
-    const signals = CONTEXT_SIGNALS[categoryKey] || [];
-    if (!signals.length || !ambiguous.length) continue;
-
-    // One combined regex for all signals in this category — faster than iterating
-    const escaped = signals.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-    const signalRegex = new RegExp(`\\b(${escaped.join("|")})\\b`, "i");
-
-    for (const word of ambiguous) {
-      ambiguousMap.set(word, signalRegex);
-    }
-  }
-
-  return function needsContext(matchedWord, surroundingText) {
-    const lw = matchedWord.toLowerCase();
-    const signalRegex = ambiguousMap.get(lw);
-    if (!signalRegex) return true; // confident word — always filter
-    return signalRegex.test(surroundingText);
-  };
-}
-
 // Process a single text node
-function processTextNode(node, regex, needsContext) {
+function processTextNode(node, regex) {
   if (!node.nodeValue || !node.nodeValue.trim()) return;
   if (!regex.test(node.nodeValue)) return;
 
   regex.lastIndex = 0;
 
-  // Context text: use the nearest block ancestor so ambiguous words can
-  // see the full sentence/paragraph rather than just the text node value.
-  // Use the nearest sentence-level block for context — deliberately excludes div/section
-  // to avoid a drug article elsewhere on the page poisoning the context for unrelated content.
-  const contextEl = node.parentElement?.closest("p,li,td,h1,h2,h3,h4,h5,h6,blockquote,article");
-  const contextText = contextEl?.textContent || node.parentElement?.textContent || node.nodeValue;
-
   if (settings.mode === "replace") {
-    node.nodeValue = node.nodeValue.replace(regex, (m) =>
-      needsContext(m, contextText) ? REPLACEMENT_TEXT : m
-    );
+    node.nodeValue = node.nodeValue.replace(regex, REPLACEMENT_TEXT);
     return;
   }
 
@@ -90,12 +50,6 @@ function processTextNode(node, regex, needsContext) {
   let matched = false;
 
   while ((match = regex.exec(node.nodeValue)) !== null) {
-    if (!needsContext(match[0], contextText)) {
-      // Ambiguous word with no context signal — emit as plain text and skip
-      fragment.appendChild(document.createTextNode(node.nodeValue.slice(lastIndex, match.index + match[0].length)));
-      lastIndex = match.index + match[0].length;
-      continue;
-    }
     matched = true;
     if (match.index > lastIndex) {
       fragment.appendChild(document.createTextNode(node.nodeValue.slice(lastIndex, match.index)));
@@ -118,7 +72,7 @@ function processTextNode(node, regex, needsContext) {
 // TreeWalker collection is synchronous (read-only, fast).
 // DOM mutations (replaceChild) are deferred to idle batches to avoid
 // blocking the main thread on content-heavy pages.
-function processNode(root, regex, needsContext) {
+function processNode(root, regex) {
   const walker = document.createTreeWalker(
     root,
     NodeFilter.SHOW_TEXT,
@@ -146,7 +100,7 @@ function processNode(root, regex, needsContext) {
 
   function processBatch(deadline) {
     while (nodes.length > 0 && deadline.timeRemaining() > 5) {
-      processTextNode(nodes.shift(), regex, needsContext);
+      processTextNode(nodes.shift(), regex);
     }
     if (nodes.length > 0) {
       requestIdleCallback(processBatch, { timeout: 2000 });
@@ -209,7 +163,7 @@ function applyCardFilter(el) {
   }
 }
 
-function scanCards(regex, needsContext) {
+function scanCards(regex) {
   const candidates = Array.from(
     document.querySelectorAll("div, section, article, aside, li")
   ).filter(el => {
@@ -225,12 +179,7 @@ function scanCards(regex, needsContext) {
       const text = el.textContent || "";
       if (!text.trim()) continue;
       regex.lastIndex = 0;
-      let match;
-      let shouldFilter = false;
-      while ((match = regex.exec(text)) !== null) {
-        if (needsContext(match[0], text)) { shouldFilter = true; break; }
-      }
-      if (shouldFilter) applyCardFilter(el);
+      if (regex.test(text)) applyCardFilter(el);
     }
     if (candidates.length > 0) {
       requestIdleCallback(processBatch, { timeout: 2000 });
@@ -273,10 +222,9 @@ function runFilter() {
   const words = getActiveWords();
   if (!words.length) return;
   const regex = buildRegex(words);
-  const needsContext = buildContextChecker();
   injectStyles();
-  processNode(document.body, regex, needsContext);
-  scanCards(regex, needsContext);
+  processNode(document.body, regex);
+  scanCards(regex);
 }
 
 // Retry pass for late-rendering content (React, lazy loads, etc.)
@@ -289,8 +237,7 @@ function runFilterDelayed() {
   const words = getActiveWords();
   if (!words.length) return;
   const regex = buildRegex(words);
-  const needsContext = buildContextChecker();
-  scanCards(regex, needsContext);
+  scanCards(regex);
 }
 
 // Watch for dynamically added content
@@ -302,7 +249,6 @@ function startObserver() {
   const words = getActiveWords();
   if (!words.length) return;
   const regex = buildRegex(words);
-  const needsContext = buildContextChecker();
 
   observer = new MutationObserver((mutations) => {
     // Collect only nodes added by the site, not by our own filtering
@@ -329,12 +275,12 @@ function startObserver() {
     observerDebounceTimer = setTimeout(() => {
       siteNodes.forEach(node => {
         if (node.nodeType === Node.ELEMENT_NODE) {
-          processNode(node, regex, needsContext);
+          processNode(node, regex);
         } else {
-          processTextNode(node, regex, needsContext);
+          processTextNode(node, regex);
         }
       });
-      scanCards(regex, needsContext);
+      scanCards(regex);
     }, 300);
   });
 

@@ -2,31 +2,6 @@
 // Single source of truth loaded by both content.js (via manifest) and popup.html.
 // DO NOT duplicate this in content.js or popup.js.
 
-// Words that confirm drug/alcohol context when found near an ambiguous match.
-// Matched with \b word boundaries — must be whole words, not substrings.
-// Keep these specific: "high" is intentionally excluded (too common in sports/news).
-const CONTEXT_SIGNALS = {
-  drugs: [
-    "bong", "cannabis", "marijuana", "weed", "thc", "cocaine", "heroin",
-    "overdose", "narcotic", "psychedelic", "psilocybin", "dispensary",
-    "drug", "drugs", "addiction", "addict", "rehab", "detox", "dope",
-    "stash", "snort", "dealer", "blaze", "420", "substance abuse"
-  ],
-  alcohol: [
-    "drunk", "hangover", "bartender", "brewery", "distillery", "taproom",
-    "wine", "beer", "cocktail", "liquor", "booze", "alcohol", "whiskey",
-    "vodka", "tequila", "pub", "nightcap", "intoxicated"
-  ]
-};
-
-// Ambiguous words that are only filtered when CONTEXT_SIGNALS for their
-// category appear in the surrounding text. Confident words (not listed here)
-// are always filtered regardless of context.
-const AMBIGUOUS_WORDS = {
-  drugs: ["pot", "acid", "wasted", "tripping", "mushrooms", "coke", "stoned"],
-  alcohol: ["spirits", "hammered", "wasted"]
-};
-
 const DEFAULT_WORD_LISTS = {
   alcohol: {
     label: "Alcohol",
@@ -37,12 +12,12 @@ const DEFAULT_WORD_LISTS = {
       "wine", "wines", "winery", "wineries", "vineyard", "vineyards",
       "champagne", "prosecco", "rosé", "rose wine", "pinot", "merlot", "cabernet", "chardonnay",
       "sauvignon", "riesling", "zinfandel", "syrah", "shiraz", "grenache",
-      "spirits", "liquor", "liqueur", "liqueurs",
+      "liquor", "liqueur", "liqueurs",
       "whiskey", "whisky", "bourbon", "scotch", "rye whiskey",
       "vodka", "gin", "rum", "tequila", "mezcal", "brandy", "cognac",
       "cocktail", "cocktails", "mocktail", "martini", "margarita", "mimosa", "bloody mary", "daiquiri",
       "bartender", "mixologist", "happy hour", "last call",
-      "drunk", "buzzed", "tipsy", "wasted", "hammered", "sober curious",
+      "drunk", "buzzed", "tipsy", "sober curious",
       "drinking", "booze", "boozy", "intoxicated",
       "shot glass", "nightcap", "chaser",
       "keg", "six-pack", "six pack",
@@ -54,15 +29,15 @@ const DEFAULT_WORD_LISTS = {
     label: "Drugs & Substances",
     enabled: true,
     words: [
-      "cocaine", "coke",
+      "cocaine",
       "heroin", "opioid", "opiate", "fentanyl", "oxycodone", "hydrocodone", "percocet", "vicodin",
       "meth", "methamphetamine", "crystal meth",
-      "marijuana", "cannabis", "weed", "pot", "edibles", "thc", "dispensary", "high on",
+      "marijuana", "cannabis", "weed", "edibles", "thc", "dispensary", "high on",
       "ecstasy", "mdma", "molly",
-      "lsd", "acid", "mushrooms", "shrooms", "psilocybin",
+      "lsd", "shrooms", "psilocybin",
       "ketamine", "xanax", "adderall", "benzodiazepine",
       "drug use", "drug abuse", "drug addiction",
-      "getting high", "stoned", "tripping",
+      "getting high",
       "overdose", "od'd"
     ]
   },
